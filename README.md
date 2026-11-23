@@ -75,8 +75,24 @@ Respons selalu `{ "success": true, "data": ... }` atau `{ "success": false, "mes
 | `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/me`, `POST /api/auth/forgot-password` | login dibatasi rate limiter | Sesi cookie `mpu_session` (httpOnly, ditandatangani) |
 | `GET /api/dashboard`, `/visitor-trend`, `/booking-status` | login | Ringkasan dashboard |
 | `GET /api/visitors/today` | login | Check-in hari ini |
+| `GET /api/visitors/checkin-qr` | login | Isi QR check-in hari ini (ditampilkan di halaman Pengunjung Hari Ini) |
 | `/api/accounts/visitors` | login | Daftar, ubah, hapus akun pengunjung |
 | `/api/accounts/admins` | **Super Admin** | Daftar, tambah, ubah, hapus admin (email dobel 409) |
 | `/api/bookings` | login | Daftar booking dan ubah status |
 | `/api/collections` | login | CRUD koleksi (file lama di Vercel Blob ikut dihapus) |
-| `POST /api/uploads` | login | multipart `file` + `kind` (`foto` JPG/PNG maks 5 MB, `dokumen` PDF maks 10 MB), mengembalikan URL Vercel Blob |
+| `POST /api/uploads` | login | multipart `file` + `kind` (`foto` JPG/PNG dan `dokumen` PDF, masing-masing maks 4 MB (batas request Vercel 4,5 MB)), mengembalikan URL Vercel Blob |
+
+### API publik untuk aplikasi mobile (`/api/public`, tanpa cookie admin)
+
+Kontrak lengkap, contoh, dan kode status ada di [`docs/KONTRAK-API-PUBLIK.md`](docs/KONTRAK-API-PUBLIK.md).
+
+| Endpoint | Keterangan |
+|---|---|
+| `GET /api/public/collections`, `/collections/:id` | Koleksi |
+| `POST /api/public/bookings`, `GET /api/public/bookings?ids=` | Ajukan dan baca status booking |
+| `POST /api/public/visits` | Check-in; menerima `qrToken` (QR harian bertanda tangan) dan token login pengunjung |
+| `POST /api/public/auth/register`, `/auth/login` | Daftar dan masuk dengan email, kode OTP 6 digit dikirim ke email |
+| `POST /api/public/auth/verify-otp` | Verifikasi OTP, mengembalikan token `Authorization: Bearer` |
+| `GET /api/public/auth/me` | Akun pengunjung yang login |
+
+Variabel tambahan: `CHECKIN_QR_REQUIRED`, `CHECKIN_QR_SECRET`, `RESEND_API_KEY`, `MAIL_FROM`, `OTP_DEV_ECHO` (lihat `.env.example`).
