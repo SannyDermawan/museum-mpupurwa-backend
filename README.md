@@ -50,21 +50,24 @@ Perubahan skema **hanya** lewat `prisma/schema.prisma` + migrasi (folder `prisma
 
 ## Struktur
 
+Alur permintaan: **routes → controllers → services → models**.
+
 ```
 src/
   app.ts            Express, CORS, JSON, pemasangan router
   server.ts         menjalankan server
-  config.ts         membaca .env
-  routes/           auth, dashboard, visitors, accounts, bookings, collections, uploads
+  config/           env.ts (variabel environment) dan db.ts (koneksi Prisma)
+  models/           satu file per tabel: SATU-SATUNYA yang menyentuh database
+  services/         logika bisnis (memanggil models)
   controllers/      baca request, validasi, panggil service, kirim respons
-  services/         logika bisnis dan query Prisma
-  middleware/       authMiddleware, requireRole, rateLimiter, errorHandler
-  lib/              prisma.ts, validate.ts, validatePassword.ts
+  routes/           auth, dashboard, visitors, accounts, bookings, collections, uploads, public
+  middleware/       authMiddleware, requireRole, requireVisitor, rateLimiter, requestLogger, errorHandler
+  lib/              validate.ts, validatePassword.ts, logger.ts, checkinQr.ts, visitorToken.ts, prisma.ts
   types/            express.d.ts (req.user), tipe API
 prisma/             schema.prisma, migrations/, seed.ts
 ```
 
-Controller tidak boleh berisi query database; semua query ada di `services/`.
+Controller dan service tidak boleh menjalankan query; semua query ada di `models/`.
 
 ## API
 
