@@ -1,5 +1,6 @@
 import type { NextFunction, Request, Response } from "express";
-import { bodyAsRecord, isOneOf, readText } from "../lib/validate";
+import { bodyAsRecord, isGoogleDriveFileUrl, isOneOf, isYouTubeUrl, readText } from "../lib/validate";
+import { isVercelBlobUrl } from "../services/blob.service";
 import {
   createCollection,
   deleteCollection,
@@ -17,22 +18,9 @@ function parsePositiveId(raw: unknown): number | null {
   return Number.isSafeInteger(num) && num > 0 ? num : null;
 }
 
-function isValidHttpUrl(value: string): boolean {
-  try {
-    const parsed = new URL(value);
-    return parsed.protocol === "http:" || parsed.protocol === "https:";
-  } catch {
-    return false;
-  }
-}
-
-function isValidVercelBlobUrl(value: string): boolean {
-  try {
-    const parsed = new URL(value);
-    return parsed.protocol === "https:" && parsed.hostname.endsWith(".public.blob.vercel-storage.com");
-  } catch {
-    return false;
-  }
+function isValidPdfUrl(value: string): boolean {
+  if (/\s/.test(value)) return false;
+  return isVercelBlobUrl(value) || isGoogleDriveFileUrl(value);
 }
 
 function validateCollectionBody(rawBody: unknown): { ok: true; data: CollectionWriteInput } | { ok: false; message: string } {
@@ -64,19 +52,25 @@ function validateCollectionBody(rawBody: unknown): { ok: true; data: CollectionW
   const videoUrl = readText(body.videoUrl);
   if (videoUrl) {
     if (videoUrl.length > 255) return { ok: false, message: "Link video maksimal 255 karakter." };
-    if (!isValidHttpUrl(videoUrl)) return { ok: false, message: "Link video harus diawali http:// atau https://." };
+    if (!isYouTubeUrl(videoUrl)) {
+      return { ok: false, message: "Link video harus berupa link YouTube, mis. https://youtu.be/xxxxxxxxxxx." };
+    }
   }
 
   const photoUrl = readText(body.photoUrl);
   if (photoUrl) {
     if (photoUrl.length > 500) return { ok: false, message: "URL foto maksimal 500 karakter." };
-    if (!isValidVercelBlobUrl(photoUrl)) return { ok: false, message: "URL foto harus berasal dari Vercel Blob (https)." };
+    if (/\s/.test(photoUrl) || !isVercelBlobUrl(photoUrl)) {
+      return { ok: false, message: "URL foto harus berasal dari Vercel Blob (https)." };
+    }
   }
 
   const pdfUrl = readText(body.pdfUrl);
   if (pdfUrl) {
     if (pdfUrl.length > 500) return { ok: false, message: "URL PDF maksimal 500 karakter." };
-    if (!isValidVercelBlobUrl(pdfUrl)) return { ok: false, message: "URL PDF harus berasal dari Vercel Blob (https)." };
+    if (!isValidPdfUrl(pdfUrl)) {
+      return { ok: false, message: "Link PDF harus berupa link berkas Google Drive atau file yang diunggah." };
+    }
   }
 
   return {

@@ -1,5 +1,9 @@
 // Builds the Express app: JSON parser, CORS, and the routers. server.ts only starts it.
 
+// Pulls in the `req.user` type. Nothing imports express.d.ts, and Vercel only type-checks the files reachable from
+// this one (it ignores tsconfig "include"), so without this line the Vercel build fails with TS2339 on req.user.
+/// <reference path="./types/express.d.ts" />
+
 import cors from "cors";
 import express from "express";
 import helmet from "helmet";
@@ -12,6 +16,7 @@ import { accountsRoutes } from "./routes/accounts.routes";
 import { authRoutes } from "./routes/authRoutes";
 import bookingsRoutes from "./routes/bookings.routes";
 import { dashboardRoutes } from "./routes/dashboard.routes";
+import { publicRoutes } from "./routes/public.routes";
 import { uploadsRoutes } from "./routes/uploads.routes";
 import { visitorsRoutes } from "./routes/visitors.routes";
 import { collectionsRoutes } from "./routes/collections.routes";
@@ -25,6 +30,9 @@ app.set("trust proxy", 1);
 app.use(requestLogger);
 // Security headers: nosniff, no framing, HSTS (HTTPS only), no referrer leakage, and so on.
 app.use(helmet());
+// Public API for the mobile app (collections, booking, check-in). Mounted BEFORE the CORS rule below because
+// it brings its own open CORS and JSON parser; the admin-only CORS must not answer its preflight requests.
+app.use("/api/public", express.json({ limit: "100kb" }), publicRoutes);
 // Only the frontend may call this API from a browser. `credentials` lets the login cookie travel with it.
 app.use(cors({ origin: config.frontendUrl, credentials: true }));
 // A small limit: no endpoint needs a big JSON body (files go through /api/uploads as multipart).
